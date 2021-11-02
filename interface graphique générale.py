@@ -4,6 +4,7 @@ import functools
 from tkinter.filedialog import askopenfilename
 from PIL import Image, ImageTk
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class Textbox(Entry):
@@ -26,7 +27,8 @@ class Interface(Tk):
     def __init__(self):
         super().__init__()
         self.create_widgets()
-        self.coordsRect = [0,0,0,0]
+        self.coordsRect_green = [0,0,0,0]
+        self.coordsRect_red = [0,0,0,0]
 
     def create_widgets(self):
         #création des cadres
@@ -88,9 +90,29 @@ class Interface(Tk):
     def load_multiple_files(self): #permet de charger plusieurs fichiers
         liste_image = askopenfilename(multiple=True)
 
-        
+    def Rechercher(self,texte,mot): #renvoie les indices des positions d'un mot dans un texte
+        n=len(texte)
+        m=len(mot)
+        L=[]
+        for i in range(n):
+            # j=0
+            if texte[i]==mot[0]:
+                j=0
+                compteur=0
+                while j<m and texte[i]==mot[j]:
+                    i+=1
+                    j+=1
+                    compteur+=1
+                    # print(i,j)
+                if compteur==m:
+                    rang=i-compteur
+                    L.append(rang)
+        return(L)
+
+
 
     def load_file(self):
+        global finName
         finName=askopenfilename()
         if finName!="":
             #self.label1["text"]=finName
@@ -112,19 +134,26 @@ class Interface(Tk):
     
 
     def startTrace(self,event, couleur): # se déclenche au clic gauche pour commencer à tracer un rectangle
-        self.coordsRect[0:2] = [event.x, event.y]
-        global rect
-        rect = self.canvas.create_rectangle(self.coordsRect[0],self.coordsRect[1],self.coordsRect[0],self.coordsRect[1],outline = couleur, width = 3, fill = couleur, stipple='gray50')
-        self.canvas.bind("<B1-Motion>", functools.partial(self.ajusterTaille, rectangle = rect, couleur = couleur))
+        #self.coordsRect[0:2] = [event.x, event.y]
+        global rect_red
+        global rect_green
+        if couleur == "green":
+            self.coordsRect_green[0:2] = [event.x, event.y]
+            rect_green = self.canvas.create_rectangle(self.coordsRect_green[0],self.coordsRect_green[1],self.coordsRect_green[0],self.coordsRect_green[1],outline = couleur, width = 3, fill = couleur, stipple='gray50')
+            self.canvas.bind("<B1-Motion>", functools.partial(self.ajusterTaille, rectangle = rect_green, couleur = couleur, coordsRect = self.coordsRect_green))
+        elif couleur == "red":
+            self.coordsRect_red[0:2] = [event.x, event.y]
+            rect_red = self.canvas.create_rectangle(self.coordsRect_red[0],self.coordsRect_red[1],self.coordsRect_red[0],self.coordsRect_red[1],outline = couleur, width = 3, fill = couleur, stipple='gray50')
+            self.canvas.bind("<B1-Motion>", functools.partial(self.ajusterTaille, rectangle = rect_red, couleur = couleur, coordsRect = self.coordsRect_red))
 
-    def ajusterTaille(self,event, rectangle, couleur): # se déclenche en maintenant clic gauche et en bougeant la souris
+    def ajusterTaille(self,event, rectangle, couleur,coordsRect): # se déclenche en maintenant clic gauche et en bougeant la souris
                                                         # pour tracer le rectangle
-        self.canvas.coords(rectangle,self.coordsRect[0],self.coordsRect[1],event.x,event.y)
-        self.canvas.bind('<ButtonRelease-1>', functools.partial(self.finirTrace, rectangle = rectangle, couleur = couleur))
+        self.canvas.coords(rectangle,coordsRect[0],coordsRect[1],event.x,event.y)
+        self.canvas.bind('<ButtonRelease-1>', functools.partial(self.finirTrace, rectangle = rectangle, couleur = couleur, coordsRect = coordsRect))
 
-    def finirTrace(self,event, rectangle, couleur): # se déclenche en relachant le clic gauche et termine le rectangle
-        self.coordsRect[2:4] = [event.x,event.y]
-        self.canvas.coords(self.coordsRect[0],self.coordsRect[1],self.coordsRect[2],self.coordsRect[3])
+    def finirTrace(self,event, rectangle, couleur, coordsRect): # se déclenche en relachant le clic gauche et termine le rectangle
+        coordsRect[2:4] = [event.x,event.y]
+        self.canvas.coords(coordsRect[0],coordsRect[1],coordsRect[2],coordsRect[3])
         #self.delete_rect(rectangle)
         
     def delete_rect(self):
@@ -136,24 +165,45 @@ class Interface(Tk):
             couleur = "red"
             zone_type = "forbidden"
             self.canvas.bind("<Button-1>", functools.partial(self.startTrace, couleur = couleur))
-            rect_forbidden = self.coordsRect
+            rect_forbidden = self.coordsRect_red
 
         else:
             couleur = "green"
             zone_type = "authorized"
             self.canvas.bind("<Button-1>", functools.partial(self.startTrace, couleur = couleur))
-            rect_authorized = self.coordsRect
+            rect_authorized = self.coordsRect_green
         
     
 #    def delete_zone(self): #supprime le dernier rectangle tracé
 #        print("")
 #        #à modifier
     
-    def create_output_image(self): #créé et enregistre l'image de sortie avec les rectangle 1 et -1.
-        self.output_img = np.zeros(self.image.shape())
+    def create_output_image(self): #créé et enregistre l'image de sortie avec les rectangle 1 et -1 sous le nom "nomImage.txt"
+        #n,p=np.shape(self.image)[0:2]
+        self.output_img = np.zeros(np.shape(self.image)[0:2])
+        print("Rectangle vert : "+str(self.coordsRect_green))
+        print("Rectangle rouge : "+str(self.coordsRect_red))
 
-        #à modifier
+
+        #Les "+1" correspondent au rectangle vert, les "-1" au rectangle rouge
+        self.output_img[self.coordsRect_green[1]:self.coordsRect_green[3],self.coordsRect_green[0]:self.coordsRect_green[2]] = 1
+        self.output_img[self.coordsRect_red[1]:self.coordsRect_red[3],self.coordsRect_red[0]:self.coordsRect_red[2]] = -1
+
+        #Enregistrement de l'image de sorite
+        posDebutNom = self.Rechercher(finName,os.getcwd())[0]+len(os.getcwd())+1
+        posPoint = self.Rechercher(finName,".")[0]
+        print(posDebutNom)
+        print(posPoint)
+        imageName=finName[posDebutNom:posPoint]
+        np.savetxt(imageName+'.txt',self.output_img,fmt='%d')
+
+        plt.figure()
+        plt.imshow(self.output_img)
+        plt.show()
     
+
+
+
     def image_next(self): #affiche l'image suivante dans l'interface graphique
         print("")
         #à modifier
@@ -161,7 +211,8 @@ class Interface(Tk):
     def image_previous(self): #revient à l'image précédente dans l'interface graphique
         print("")
         #à modifier
-        
+    
+
 
 
 #Démarrage
