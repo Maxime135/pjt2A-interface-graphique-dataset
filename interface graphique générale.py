@@ -50,16 +50,21 @@ class Interface(Tk):
         self.label_title = Label(self.cadreFichier,text='Création du dataset pour la préhension d\'ampoules ',)
         self.label_title.pack(side=TOP)
 
-        self.ouvrir_fichier =Button(self.cadreFichier, text="Charger image", command=self.load_file)
+        self.ouvrir_fichier =Button(self.cadreFichier, text="Charger images", command=self.load_multiple_files)
         self.ouvrir_fichier.pack(side=LEFT,padx=10,pady=10)
         
 
     #-----------------cadre zone de dessin--------------
+        
+        #self.texte_label_image_name = StringVar()
+        self.label_image_name = Label(self.cadreZoneDessin)
+        self.label_image_name.pack(side=TOP,padx=10,pady=10)
+        
         self.canvas = Canvas(self.cadreZoneDessin,width=400,height=400)
         self.canvas.pack(side=LEFT)
         
         
-        self.liste_nom_zone_val = [-1,1]
+        #self.liste_nom_zone_val = [-1,1]
         #self.liste_nom_zone = ["Zone interdite","Zone de préhension"]
         self.listeBox_zones = Listbox(self.cadreZoneDessin,selectmode=SINGLE,width=25,height=2)
         self.listeBox_zones.insert(1, "Zone interdite = -1")
@@ -88,7 +93,21 @@ class Interface(Tk):
 
 
     def load_multiple_files(self): #permet de charger plusieurs fichiers
+        global liste_image
+        global compteur
+        global nbImages
+        compteur = 0
         liste_image = askopenfilename(multiple=True)
+        nbImages = len(liste_image)
+        #Afficher les images dans une ListBox
+        self.listeBox_nom_images = Listbox(self.cadreFichier,selectmode=SINGLE,width=25,height=7)
+        for I in liste_image:
+            self.listeBox_nom_images.insert(1, self.imageName(I))
+        self.listeBox_nom_images.pack(side=LEFT)
+        #Faire apparaitre un bouton pour utiliser une image de la ListBox
+        self.utiliser_image =Button(self.cadreFichier, text="Utiliser image", command=self.use_image)
+        self.utiliser_image.pack(side=LEFT,padx=10,pady=10)
+
 
     def Rechercher(self,texte,mot): #renvoie les indices des positions d'un mot dans un texte
         n=len(texte)
@@ -109,14 +128,19 @@ class Interface(Tk):
                     L.append(rang)
         return(L)
 
+    def imageName(self,pathImage):   #Permet d'obtenir le nom de l'image avec son chemin d'accès
+        posDebutNom = self.Rechercher(pathImage,os.getcwd())[0]+len(os.getcwd())+1
+        posPoint = self.Rechercher(pathImage,".")[0]
+        #print(posDebutNom)
+        #print(posPoint)
+        return(pathImage[posDebutNom:posPoint])
 
 
-    def load_file(self):
+    def use_image(self):
         global finName
-        finName=askopenfilename()
+        finName = liste_image[self.listeBox_nom_images.curselection()[0]]
         if finName!="":
-            #self.label1["text"]=finName
-            #self.labelim['text']=finName.split('/')[-1]
+            self.label_image_name["text"]=self.imageName(finName)
             #création de l'image PIL
             self.image = Image.open(finName)
             #récupération de la taille de l'image
@@ -190,12 +214,12 @@ class Interface(Tk):
         self.output_img[self.coordsRect_red[1]:self.coordsRect_red[3],self.coordsRect_red[0]:self.coordsRect_red[2]] = -1
 
         #Enregistrement de l'image de sorite
-        posDebutNom = self.Rechercher(finName,os.getcwd())[0]+len(os.getcwd())+1
-        posPoint = self.Rechercher(finName,".")[0]
-        print(posDebutNom)
-        print(posPoint)
-        imageName=finName[posDebutNom:posPoint]
-        np.savetxt(imageName+'.txt',self.output_img,fmt='%d')
+        #posDebutNom = self.Rechercher(finName,os.getcwd())[0]+len(os.getcwd())+1
+        #posPoint = self.Rechercher(finName,".")[0]
+        #print(posDebutNom)
+        #print(posPoint)
+        #imageName=finName[posDebutNom:posPoint]
+        np.savetxt(self.imageName(finName)+'.txt',self.output_img,fmt='%d')
 
         plt.figure()
         plt.imshow(self.output_img)
@@ -205,12 +229,19 @@ class Interface(Tk):
 
 
     def image_next(self): #affiche l'image suivante dans l'interface graphique
-        print("")
-        #à modifier
+        if self.listeBox_nom_images.curselection()[0]<nbImages:
+            self.listeBox_nom_images.selection_set(self.listeBox_nom_images.curselection()[0]+1)
+            self.listeBox_nom_images.selection_clear(self.listeBox_nom_images.curselection()[0])
+            print(self.listeBox_nom_images.curselection()[0])
+            self.use_image()
+
     
     def image_previous(self): #revient à l'image précédente dans l'interface graphique
-        print("")
-        #à modifier
+        if self.listeBox_nom_images.curselection()[0]>0:
+            self.listeBox_nom_images.selection_set(self.listeBox_nom_images.curselection()[0]-1)
+            self.listeBox_nom_images.selection_clear(self.listeBox_nom_images.curselection()[0]+1)
+            print(self.listeBox_nom_images.curselection()[0])
+            self.use_image()
     
 
 
