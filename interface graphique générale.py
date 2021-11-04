@@ -80,7 +80,7 @@ class Interface(Tk):
 
 
     #-----------------cadre pour sauvegarder l'image de sortie--------------
-        self.bouton_svg_img = Button(self.cadreSauvegarde, text="Sauvegarder l'image avec cadre", command=self.create_output_image)
+        self.bouton_svg_img = Button(self.cadreSauvegarde, text="Générer et sauvegarder l'image", command=self.create_output_image)
         self.bouton_svg_img.pack(side=LEFT,padx=10,pady=10)
 
         self.bouton_next = Button(self.cadreSauvegarde,text='Image suivante', command=self.image_next)
@@ -100,6 +100,8 @@ class Interface(Tk):
         liste_image = askopenfilename(multiple=True)
         nbImages = len(liste_image)
         #Afficher les images dans une ListBox
+        
+
         self.listeBox_nom_images = Listbox(self.cadreFichier,selectmode=SINGLE,width=25,height=7)
         for I in liste_image:
             self.listeBox_nom_images.insert(1, self.imageName(I))
