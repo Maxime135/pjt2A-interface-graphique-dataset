@@ -6,6 +6,7 @@ from PIL import Image, ImageTk
 import numpy as np
 import matplotlib.pyplot as plt
 
+os.chdir=(os.getcwd()+"\\images ampoules\\")
 
 class Textbox(Entry):
     def __init__(self,parent=None):
@@ -75,7 +76,7 @@ class Interface(Tk):
         self.button_draw_zone = Button(self.cadreZoneDessin, text="Tracer zone", command=self.draw_zone)
         self.button_draw_zone.pack(side=LEFT,padx=10,pady=10)
 
-        self.button_effacer_zone = Button(self.cadreZoneDessin, text="Effacer dernière zone", command=self.delete_rect)
+        self.button_effacer_zone = Button(self.cadreZoneDessin, text="Effacer  zones", command=self.delete_rect)
         self.button_effacer_zone.pack(side=LEFT,padx=10,pady=10)
 
 
@@ -102,7 +103,7 @@ class Interface(Tk):
         #Afficher les images dans une ListBox
         
 
-        self.listeBox_nom_images = Listbox(self.cadreFichier,selectmode=SINGLE,width=25,height=7)
+        self.listeBox_nom_images = Listbox(self.cadreFichier,selectmode=SINGLE,width=25,height=3)
         for I in liste_image:
             self.listeBox_nom_images.insert(1, self.imageName(I))
         self.listeBox_nom_images.pack(side=LEFT)
@@ -131,10 +132,13 @@ class Interface(Tk):
         return(L)
 
     def imageName(self,pathImage):   #Permet d'obtenir le nom de l'image avec son chemin d'accès
-        posDebutNom = self.Rechercher(pathImage,os.getcwd())[0]+len(os.getcwd())+1
+        #print(os.getcwd())
+        #print(pathImage)
+        posDebutNom = self.Rechercher(pathImage,"/")[-1]+1
         posPoint = self.Rechercher(pathImage,".")[0]
         #print(posDebutNom)
         #print(posPoint)
+        #print(len(pathImage))
         return(pathImage[posDebutNom:posPoint])
 
 
@@ -183,7 +187,8 @@ class Interface(Tk):
         #self.delete_rect(rectangle)
         
     def delete_rect(self):
-        self.canvas.delete(rect)
+        self.canvas.delete(rect_red)
+        self.canvas.delete(rect_green)
 
     
     def draw_zone(self): #détermine la classe de la zone à tracer et la couleur du rectangle
