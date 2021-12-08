@@ -5,6 +5,9 @@ from tkinter.filedialog import askopenfilename
 from PIL import Image, ImageTk
 import numpy as np
 import matplotlib.pyplot as plt
+import shapely.geometry as sg
+
+
 
 os.chdir=(os.getcwd()+"\\images ampoules\\")
 
@@ -20,7 +23,12 @@ class Textbox(Entry):
     def set(self,text): 
         return self.__text().set(text)
 
-
+def conversion_liste_points(L): #[x,y,...,x,y] to [(x,y),...,(x,y)]
+    #L est forcément paire
+    R=[]
+    for k in range(len(L)//2):
+        R.append((L[2*k],L[2*k+1]))
+    return(R)
 
 
 
@@ -30,6 +38,12 @@ class Interface(Tk):
         self.create_widgets()
         self.coordsRect_green = [0,0,0,0]
         self.coordsRect_red = [0,0,0,0]
+        # self.coords_line_green = [0,0,0,0]
+        # self.coords_line_red = [0,0,0,0]
+        self.coord_point = [0,0]
+        self.L_points_polygone = []
+        self.coords_polygon_green = []
+        self.coords_polygon_red = []
 
     def create_widgets(self):
         #création des cadres
@@ -65,18 +79,18 @@ class Interface(Tk):
         self.canvas.pack(side=LEFT)
         
         
-        #self.liste_nom_zone_val = [-1,1]
-        #self.liste_nom_zone = ["Zone interdite","Zone de préhension"]
         self.listeBox_zones = Listbox(self.cadreZoneDessin,selectmode=SINGLE,width=25,height=2)
         self.listeBox_zones.insert(1, "Zone interdite = -1")
         self.listeBox_zones.insert(1, "Zone de préhension = 1")
         self.listeBox_zones.pack(side=LEFT)
-        #zone = self.listeBox_zones.curselection()
 
-        self.button_draw_zone = Button(self.cadreZoneDessin, text="Tracer zone", command=self.draw_zone)
+        self.button_draw_zone = Button(self.cadreZoneDessin, text="Placer points", command=self.TracePoint)
         self.button_draw_zone.pack(side=LEFT,padx=10,pady=10)
 
-        self.button_effacer_zone = Button(self.cadreZoneDessin, text="Effacer  zones", command=self.delete_rect)
+        self.button_polygon = Button(self.cadreZoneDessin, text="Générer polygone", command=self.Polygon)
+        self.button_polygon.pack(side=LEFT,padx=10,pady=10)
+
+        self.button_effacer_zone = Button(self.cadreZoneDessin, text="Effacer zones", command=self.delete_polygon)
         self.button_effacer_zone.pack(side=LEFT,padx=10,pady=10)
 
 
@@ -176,6 +190,7 @@ class Interface(Tk):
             rect_red = self.canvas.create_rectangle(self.coordsRect_red[0],self.coordsRect_red[1],self.coordsRect_red[0],self.coordsRect_red[1],outline = couleur, width = 3, fill = couleur, stipple='gray50')
             self.canvas.bind("<B1-Motion>", functools.partial(self.ajusterTaille, rectangle = rect_red, couleur = couleur, coordsRect = self.coordsRect_red))
 
+
     def ajusterTaille(self,event, rectangle, couleur,coordsRect): # se déclenche en maintenant clic gauche et en bougeant la souris
                                                         # pour tracer le rectangle
         self.canvas.coords(rectangle,coordsRect[0],coordsRect[1],event.x,event.y)
@@ -186,6 +201,11 @@ class Interface(Tk):
         self.canvas.coords(coordsRect[0],coordsRect[1],coordsRect[2],coordsRect[3])
         #self.delete_rect(rectangle)
         
+    # def finirTracePolygon(self,event, ligne, couleur, coordsLine): # se déclenche en relachant le clic gauche et termine le rectangle
+    #     coordsLine[2:4] = [event.x,event.y]
+    #     self.canvas.coords(coordsLine[0],coordsLine[1],coordsLine[2],coordsLine[3]) 
+
+
     def delete_rect(self):
         self.canvas.delete(rect_red)
         self.canvas.delete(rect_green)
@@ -203,22 +223,61 @@ class Interface(Tk):
             zone_type = "authorized"
             self.canvas.bind("<Button-1>", functools.partial(self.startTrace, couleur = couleur))
             rect_authorized = self.coordsRect_green
+    
+
+    def StartPoint(self,event):
+        self.coord_point = [event.x, event.y]
+        self.L_points_polygone += self.coord_point
+        self.canvas.create_line(self.coord_point[0],self.coord_point[1],self.coord_point[0],self.coord_point[1],fill="black")
+
+    def TracePoint(self):
+        self.L_points_polygone = []
+        self.canvas.bind("<Button-1>", functools.partial(self.StartPoint))
+        
+    def Polygon(self): # se déclenche au clic gauche pour commencer à tracer un rectangle
+        #self.coordsRect[0:2] = [event.x, event.y]
+        global polygon_red
+        global polygon_green
+
+        if self.listeBox_zones.curselection()[0]==0 :
+            couleur = "red"
+            self.coords_polygon_red = self.L_points_polygone
+            polygon_red = self.canvas.create_polygon(self.coords_polygon_red,fill=couleur,stipple='gray50')
+
+        else:
+            couleur = "green"
+            self.coords_polygon_green = self.L_points_polygone
+            polygon_green = self.canvas.create_polygon(self.coords_polygon_green,fill=couleur,stipple='gray50')
+
+
+    def delete_polygon(self):
+        self.canvas.delete(polygon_green)
+        self.canvas.delete(polygon_red)
+
+    
         
     
-#    def delete_zone(self): #supprime le dernier rectangle tracé
-#        print("")
-#        #à modifier
     
     def create_output_image(self): #créé et enregistre l'image de sortie avec les rectangle 1 et -1 sous le nom "nomImage.txt"
         #n,p=np.shape(self.image)[0:2]
         self.output_img = np.zeros(np.shape(self.image)[0:2])
-        print("Rectangle vert : "+str(self.coordsRect_green))
-        print("Rectangle rouge : "+str(self.coordsRect_red))
+        print("Polygone vert : "+str(self.coords_polygon_green))
+        print("Polygone rouge : "+str(self.coords_polygon_red))
 
+        self.polygon_green_sg = sg.Polygon(conversion_liste_points(self.coords_polygon_green))
+        self.polygon_red_sg = sg.Polygon(conversion_liste_points(self.coords_polygon_red))
 
-        #Les "+1" correspondent au rectangle vert, les "-1" au rectangle rouge
-        self.output_img[self.coordsRect_green[1]:self.coordsRect_green[3],self.coordsRect_green[0]:self.coordsRect_green[2]] = 1
-        self.output_img[self.coordsRect_red[1]:self.coordsRect_red[3],self.coordsRect_red[0]:self.coordsRect_red[2]] = -1
+        #Les "+1" correspondent au polygone vert, les "-1" au polygone rouge
+        for i in range(np.shape(self.image)[0]):
+            for j in range(np.shape(self.image)[1]):
+                if self.polygon_green_sg.contains(sg.Point(i,j)):
+                    self.output_img[j,i]=1
+                if self.polygon_red_sg.contains(sg.Point(i,j)):
+                    self.output_img[j,i]=-1
+
+        
+        # self.output_img[self.coordsRect_green[1]:self.coordsRect_green[3],self.coordsRect_green[0]:self.coordsRect_green[2]] = 1
+        # self.output_img[self.coordsRect_red[1]:self.coordsRect_red[3],self.coordsRect_red[0]:self.coordsRect_red[2]] = -1
 
         #Enregistrement de l'image de sorite
         #posDebutNom = self.Rechercher(finName,os.getcwd())[0]+len(os.getcwd())+1
