@@ -149,7 +149,7 @@ class Interface(Tk):
         #print(os.getcwd())
         #print(pathImage)
         posDebutNom = self.Rechercher(pathImage,"/")[-1]+1
-        posPoint = self.Rechercher(pathImage,".")[0]
+        posPoint = self.Rechercher(pathImage,".")[-1]
         #print(posDebutNom)
         #print(posPoint)
         #print(len(pathImage))
@@ -162,7 +162,14 @@ class Interface(Tk):
         if finName!="":
             self.label_image_name["text"]=self.imageName(finName)
             #création de l'image PIL
-            self.image = Image.open(finName)
+            self.extension = finName[self.Rechercher(finName,'.')[-1]:]
+            # print(self.extension)
+
+            if self.extension == '.npy':
+                self.image = Image.fromarray(np.load(finName))
+            else:
+                self.image = Image.open(finName)
+            print(self.image)
             #récupération de la taille de l'image
             self.width= self.image.width
             self.height=self.image.height
